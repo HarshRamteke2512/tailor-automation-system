@@ -2,6 +2,7 @@ import os
 import time
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, status, Depends
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from PIL import Image
 import io
@@ -11,6 +12,14 @@ from app.database import get_db, engine, Base
 from app.models import FabricImage
 
 app = FastAPI(title="Tailor Shop Automation - Media Locker")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins (perfect for local testing with your team)
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows POST, PUT, GET, etc.
+    allow_headers=["*"],
+)
 
 # Create the database tables automatically if they don't exist yet
 Base.metadata.create_all(bind=engine)
