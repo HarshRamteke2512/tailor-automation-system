@@ -1,175 +1,79 @@
-# README
+# Tailor Shop Automation System
 
-# 🧵 Tailor Shop Automation System
-
-A low-cost, hardware-agnostic enterprise ecosystem designed for premium custom tailoring boutiques. Instead of utilizing expensive barcode scanners or proprietary label printers, this system orchestrates the entire workflow around a dynamic **4-Digit Token System** running on standard smartphones, tablets, and web browsers.
-
-The project leverages a **Polyglot Microservices Architecture** to separate intensive image/communication processing from relational financial transaction states.
+A low-cost, hardware-agnostic management system for custom tailoring boutiques. Uses a **4-digit token system** running on standard smartphones, tablets, and web browsers — no barcode scanners or proprietary hardware needed.
 
 ---
 
-## 🏗️ Architecture & Technology Stack
+## Architecture
 
-The system is configured as a Monorepo containing two distinct backend services sharing a single cloud-hosted **PostgreSQL** database instance.
-
-- **Frontend App (React / TypeScript PWA):** Optimized for low-end mobile devices on the workshop floor, featuring an ATM-style oversized numeric keypad layout and hands-free input.
-- **Core Engine (Java / Spring Boot):** Governs core relational CRUD, customer profiles, order state progression, labor capacity pooling, and the financial ledger.
-- **Media & Notification Core (Python / FastAPI):** Handles high-performance media compression, local file storage allocation, asynchronous media purging, and automated outbound WhatsApp/SMS webhooks.
-- **Database (PostgreSQL):** Utilizes a hybrid Relational-JSON schema to dynamically store completely unique measurement fields within a single table using `JSONB`.
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Frontend (React / Vite)              │
+│              TanStack Start PWA — port 5173             │
+└────────────────────┬────────────────────────────────────┘
+                     │  REST API
+                     ▼
+┌─────────────────────────────────────────────────────────┐
+│              Java / Spring Boot — port 8089              │
+│   Order CRUD, status transitions, customer, karigar,    │
+│   financial ledger, notification triggers                │
+└─────────┬───────────────────────────────────┬───────────┘
+          │  HTTP callback                     │  SQL
+          ▼                                   ▼
+┌──────────────────────┐          ┌──────────────────────┐
+│ Python / FastAPI     │          │     PostgreSQL       │
+│ port 8000            │          │   port 5432          │
+│                      │          │                      │
+│ • WhatsApp           │          │ orders, customers,   │
+│   notifications      │          │ karigars,            │
+│ • Media upload/      │          │ financial_ledger     │
+│   cleanup            │          │                      │
+└──────────────────────┘          └──────────────────────┘
+```
 
 ---
 
-## 🛠️ Solved Core Inconveniences (Real-World UX Guardrails)
+## Tech Stack
 
-1. **Hands-Free Dictation:** Integrates the browser-native **Web Speech API** at the counter. Clerks can dictate complicated tailoring adjustments hands-free in localized languages, pasting text directly into the form without touching a keyboard.
-2. **Visual Verification Guardrail:** Eliminates cutting mistakes. Before an artisan (*karigar*) can view measurement sheets, the mobile app forces them to visually confirm a compressed photo of the physical fabric bundle pulled from the Python server.
-3. **Hybrid JSONB Schema:** Replaces hundreds of rigid, dress-specific database columns with a single flexible `JSONB` metadata dictionary that adapts automatically to any garment type (*Blouse, Kurta, Trousers*).
-4. **Experience-Driven Capacity Pooling:** Prevents festival-season overbooking. The Java service aggregates *Masterji's* manual, expert-driven manufacturing time estimates against weekly workshop hour thresholds.
-5. **Frictionless Cash/QR Ledger:** Optimizes fast counter checkout by functioning as a digital register. It drops complex banking API integrations in favor of manual recording buttons (`[Paid via Cash]` / `[Paid via Counter QR]`) that complement existing static in-shop UPI standees.
-6. **Two-Stage Status Validation:** Prevents premature customer arrivals. The Python WhatsApp notification is strictly held back when a worker finishes sewing (`STITCHING_COMPLETED`) and only fires when the counter clerk physically checks the item into the retail rack (`READY_FOR_PICKUP`).
-7. **Automated Media Purge Lifecycle:** Keeps server storage zero-cost. The instant an order state changes to `DELIVERED`, an asynchronous Python hook deletes the compressed fabric verification photo from the disk, preventing hardware storage bloat.
+| Layer | Technology |
+|---|---|
+| Frontend | React 19, TypeScript, TanStack Start, Tailwind CSS v4, shadcn/ui |
+| Core API | Java 17+, Spring Boot 4.1, Spring Data JPA |
+| Media & Notifications | Python 3, FastAPI, SQLAlchemy |
+| Database | PostgreSQL (JSONB for flexible measurements) |
+| Notifications | Meta WhatsApp Cloud API (dry-run available) |
+| Speech-to-text | Web Speech API (browser-native, no external service) |
 
 ---
 
-## 📂 Repository Structure
+## Prerequisites
 
-```
-tailor-automation-system/
-├── backend-java/        <-- Core Ledger & State Engine (Spring Boot)
-│   ├── src/
-│   └── pom.xml
-├── backend-python/      <-- Media Locker & Notification Gateway (FastAPI)
-│   ├── app/
-│   │   ├── static/uploads/  <-- Temporary compressed fabric storage
-│   │   ├── main.py
-│   │   └── database.py
-│   └── requirements.txt
-└── frontend/            <-- Mobile-First PWA Web App (React / TS)
-```
+- **Java 17+** and Maven (`./mvnw` included in repo)
+- **Python 3.10+**
+- **PostgreSQL** (local or cloud)
+- **Node.js 20+** and npm (or Bun)
 
-## 🗄️ Database Initialization Script (PostgreSQL)
+---
 
-Execute this script in your SQL editor (e.g., DBeaver) to generate the relational structure.
+## Quick Start — Local Development
 
-SQL
+### 1. Database
 
-```
-CREATE TABLE customers (
-    customer_id SERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    phone VARCHAR(15) UNIQUE NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+Create a PostgreSQL database:
 
-CREATE TABLE orders (
-    order_id INT GENERATED BY DEFAULT AS IDENTITY (START WITH 1000 INCREMENT BY 1) PRIMARY KEY,
-    customer_id INT REFERENCES customers(customer_id) ON DELETE CASCADE,
-    garment_type VARCHAR(50) NOT NULL,
-    measurements JSONB NOT NULL, -- Core polymorphic styling and measurement block
-    est_hours INT NOT NULL,
-    status VARCHAR(30) DEFAULT 'BOOKED', -- BOOKED, IN_PRODUCTION, STITCHING_COMPLETED, READY_FOR_PICKUP, DELIVERED
-    delivery_date DATE NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE fabric_images (
-    image_id SERIAL PRIMARY KEY,
-    order_id INT REFERENCES orders(order_id) ON DELETE CASCADE,
-    image_path VARCHAR(255) NOT NULL,
-    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE financial_ledger (
-    transaction_id SERIAL PRIMARY KEY,
-    order_id INT REFERENCES orders(order_id) ON DELETE CASCADE,
-    total_amount DECIMAL(10, 2) NOT NULL,
-    advance_paid DECIMAL(10, 2) NOT NULL,
-    pending_balance DECIMAL(10, 2) GENERATED ALWAYS AS (total_amount - advance_paid) STORED,
-    payment_method VARCHAR(20) DEFAULT 'NOT_SET', -- CASH, COUNTER_QR, NOT_SET
-    payment_status VARCHAR(20) DEFAULT 'PARTIALLY_PAID', -- PARTIALLY_PAID, FULLY_PAID
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+```bash
+createdb tailor-automation-system
 ```
 
-## 🔌 API Cross-Service Communication Contracts
+Or via psql:
 
-### 1. Fabric Verification (Frontend ➔ Python)
-
-- **Protocol / Route:** `GET /api/media/verify/{token_id}`
-- **Response Payload (`200 OK`):**
-
-JSON
-
-```
-{
-  "token_id": 1024,
-  "image_url": "http://localhost:8000/static/uploads/1024_fabric.jpg",
-  "status_lock": "IN_PRODUCTION",
-  "requires_confirmation": true
-}
+```sql
+CREATE DATABASE "tailor-automation-system";
 ```
 
-### 2. Notification Dispatch Trigger (Java ➔ Python)
+### 2. Python Backend
 
-- **Protocol / Route:** `POST /api/notify/status-update`
-- **Request Payload (`JSON`):**
-
-JSON
-
-```
-{
-  "token_id": "1024",
-  "customer_name": "Ananya Sharma",
-  "customer_phone": "+919876543210",
-  "garment_type": "Blouse",
-  "current_status": "READY_FOR_PICKUP",
-  "pending_balance": "1400.00"
-}
-```
-
-- **Response Payload (`202 Accepted`):**
-
-JSON
-
-```
-{
-  "notification_id": "ntf_99482",
-  "gateway_status": "DISPATCHED",
-  "target_channel": "WhatsApp"
-}
-```
-
-### 3. Media Storage Purge Hook (Java ➔ Python)
-
-- **Protocol / Route:** `POST /api/media/cleanup`
-- **Request Payload (`JSON`):**
-
-JSON
-
-```
-{
-  "token_id": "1024"
-}
-```
-
-- **Response Payload (`200 OK`):**
-
-JSON
-
-```
-{
-  "status": "success",
-  "message": "Storage cleaned for Token #1024"
-}
-```
-
-## ⚡ Local Up-and-Running Quickstart
-
-### Python Backend Setup
-
-Bash
-
-```
+```bash
 cd backend-python
 python3 -m venv venv
 source venv/bin/activate
@@ -177,8 +81,236 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000
 ```
 
-### Java Backend Setup
+### 3. Java Backend
 
-- Open `backend-java` inside your preferred IDE (IntelliJ IDEA / Eclipse).
-- Configure your cloud connection parameters within `src/main/resources/application.properties`.
-- Run the Spring Boot application entry point file.
+```bash
+cd backend-java
+./mvnw spring-boot:run
+```
+
+Starts on `http://localhost:8089`. Tables are auto-created by Hibernate (`ddl-auto=update`).
+
+To use H2 in-memory (no PostgreSQL needed):
+
+```bash
+./mvnw spring-boot:run -Dspring-boot.run.profiles=h2
+```
+
+### 4. Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Starts on `http://localhost:5173`.
+
+Open the Settings page to verify the Java API URL (`http://127.0.0.1:8089`) and Python URL (`http://127.0.0.1:8000`) are correct.
+
+---
+
+## Configuration
+
+### Central Config (`backend-python/app/shop_details.py`)
+
+All configurable variables in one place:
+
+- **Database** — host, port, name, user, password
+- **WhatsApp** — Phone Number ID, Access Token, API version, template name
+- **File Upload** — max file size in MB
+
+### Environment Variables (optional)
+
+Create `backend-python/.env` (copy from `.env.example`):
+
+```bash
+cp backend-python/.env.example backend-python/.env
+```
+
+Variables in `.env` override defaults in `shop_details.py`:
+
+```env
+# ── PostgreSQL Database ──
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_NAME=tailor-automation-system
+DB_USER=postgres
+DB_PASSWORD=Madhu@1006
+
+# ── WhatsApp Cloud API (Meta) ──
+# Get these from https://developers.facebook.com
+# Leave empty for dry-run mode (messages logged, not sent)
+WHATSAPP_PHONE_NUMBER_ID=
+WHATSAPP_ACCESS_TOKEN=
+WHATSAPP_TEMPLATE_NAME=order_ready_for_pickup
+```
+
+**Note:** `.env` is gitignored and not committed. The `.env.example` file serves as a template.
+
+---
+
+## Repository Structure
+
+```
+tailor-automation-system/
+├── backend-java/
+│   ├── src/main/java/Tailor/demo/
+│   │   ├── client/PythonFastApiClient.java   # HTTP calls to Python backend
+│   │   ├── controller/
+│   │   │   ├── OrderController.java
+│   │   │   ├── CustomerController.java
+│   │   │   ├── KarigarController.java
+│   │   │   └── FinancialLedgerController.java
+│   │   ├── entity/
+│   │   │   ├── Order.java                     # phone, style, notes, fabricPhoto
+│   │   │   ├── Customer.java
+│   │   │   ├── Karigar.java
+│   │   │   ├── JsonMapConverter.java          # Jackson-based JSONB converter
+│   │   │   └── FinancialLedger.java
+│   │   ├── repository/                        # Spring Data JPA repos
+│   │   ├── service/                           # Business logic
+│   │   └── CorsConfig.java
+│   ├── src/main/resources/
+│   │   ├── application.properties             # Default: PostgreSQL
+│   │   └── application-h2.properties          # Profile: H2 in-memory
+│   └── pom.xml
+│
+├── backend-python/
+│   ├── app/
+│   │   ├── main.py                            # FastAPI app & endpoints
+│   │   ├── database.py                        # SQLAlchemy engine & session
+│   │   ├── shop_details.py                    # Central config (DB, WhatsApp, limits)
+│   │   ├── config.py                          # Meta Graph URL builder
+│   │   └── static/uploads/                    # Fabric images
+│   ├── .env.example                           # Template for environment vars
+│   └── requirements.txt
+│
+├── frontend/
+│   ├── src/
+│   │   ├── contexts/AppContext.tsx             # API calls, status management
+│   │   ├── routes/
+│   │   │   ├── index.tsx                      # Dashboard / order list
+│   │   │   ├── counter.tsx                    # New order form (with speech-to-text)
+│   │   │   ├── karigar.tsx                    # Karigar view (Numpad max 4 digits)
+│   │   │   ├── token.$tokenId.tsx             # Token lookup
+│   │   │   ├── settings.tsx                   # API URL config
+│   │   │   └── login.tsx
+│   │   └── components/ui/                     # shadcn/ui components
+│   ├── package.json
+│   ├── vite.config.ts
+│   └── bunfig.toml
+│
+└── .gitignore
+```
+
+---
+
+## Status Lifecycle
+
+```
+BOOKED ──▶ IN_PRODUCTION ──▶ COMPLETED ──▶ DELIVERED
+  │                            │
+  └─ (new order)               └─ WhatsApp notification fires
+                                  + fabric image cleanup
+```
+
+| UI Status | API Status | Description |
+|---|---|---|
+| Pending | `BOOKED` | New order received |
+| In Progress | `IN_PRODUCTION` | Being stitched |
+| Completed | `COMPLETED` | Ready for pickup |
+| Delivered | `DELIVERED` | Picked up; notification sent |
+
+---
+
+## API Endpoints
+
+### Orders
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/orders` | List all orders |
+| `POST` | `/api/orders` | Create order |
+| `GET` | `/api/orders/{id}` | Get order by ID |
+| `PUT` | `/api/orders/{id}` | Update order |
+| `DELETE` | `/api/orders/{id}` | Delete order |
+| `PUT` | `/api/orders/{id}/production` | Move to In Progress |
+| `PUT` | `/api/orders/{id}/complete` | Move to Completed |
+| `PUT` | `/api/orders/{id}/deliver` | Move to Delivered (fires notification + cleanup) |
+
+### Customers, Karigars, Financial Ledger
+
+Standard CRUD endpoints at `/api/customers`, `/api/karigars`, `/api/ledger`.
+
+### Python Endpoints
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/api/notify/status-update` | Send WhatsApp notification (called by Java on deliver) |
+| `POST` | `/api/media/cleanup` | Delete fabric images for delivered order |
+| `GET` | `/api/media/verify/{token_id}` | Verify fabric image before production |
+| `POST` | `/api/media/upload` | Upload fabric image |
+
+---
+
+## WhatsApp Notifications
+
+When an order is marked **Delivered**, the Java backend calls Python, which sends a WhatsApp message via Meta's Cloud API.
+
+**Setup:**
+
+1. Go to [developers.facebook.com](https://developers.facebook.com)
+2. Create a Business App → add WhatsApp product
+3. Copy your **Phone Number ID** and **Access Token**
+4. Create a message template named `order_ready_for_pickup` (or use your own)
+5. Set values in `backend-python/.env`:
+
+```env
+WHATSAPP_PHONE_NUMBER_ID=123456789
+WHATSAPP_ACCESS_TOKEN=EAAx...
+WHATSAPP_TEMPLATE_NAME=order_ready_for_pickup
+```
+
+Leave these empty for **dry-run mode** — messages are logged to console, not sent.
+
+---
+
+## Deployment
+
+### Option A: Render (3 services)
+
+| Service | Type | Cost |
+|---|---|---|
+| Java API | Web Service (Free tier, spins down after 15min idle) | $0 |
+| Python API | Web Service (Starter $7/mo) | $7/mo |
+| Frontend | Web Service or Static Site | $0–$7/mo |
+| PostgreSQL | Render Managed DB (Free tier, 1GB) | $0 |
+| **Total** | | **$7–$14/mo** |
+
+Before deploying, externalize these config values via environment variables:
+
+- **Java:** `JDBC_DATABASE_URL`, `DB_USER`, `DB_PASSWORD`, `PYTHON_SERVER_URL`
+- **Python:** `DATABASE_URL`, `WHATSAPP_*` vars (already env-ready)
+- **Frontend:** API URL configurable via Settings UI (persisted in localStorage)
+
+### Option B: Railway.app (~$5–$10/mo)
+
+Better free credits for multi-service apps, no spin-down on free tier, automatic monorepo support.
+
+### Option C: Docker bundle (cheapest)
+
+Combine Java + Python in one container via Dockerfile with supervisord. Reduces to 1 Web Service (free tier). Convert frontend to static export to use free Static Site tier. **Total: $0/mo.**
+
+---
+
+## Features
+
+- **4-digit token system** — simple, memorable, phone-friendly
+- **Hands-free dictation** — Web Speech API for tailoring notes in any language
+- **Visual fabric verification** — karigars confirm fabric photo before starting production
+- **Hybrid JSONB schema** — flexible measurements per garment type (Kurta, Shirt, Sherwani, etc.)
+- **Capacity pooling** — prevents overbooking by tracking estimated hours against workshop capacity
+- **Cash/QR ledger** — manual payment recording, no external payment API needed
+- **Auto media purge** — fabric images deleted on delivery to keep storage clean
+- **WhatsApp notifications** — automated customer updates on order readiness (Meta Cloud API)
