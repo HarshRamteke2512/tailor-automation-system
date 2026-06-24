@@ -2,11 +2,9 @@ package Tailor.demo.entity;
 
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
+import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.Map;
 
 @Entity
@@ -18,95 +16,99 @@ public class Order {
     @Column(name = "order_id")
     private Long orderId;
 
-    // This links the Order directly to the Customer who made it
-    @ManyToOne
-    @JoinColumn(name = "customer_id", nullable = false)
-    private Customer customer;
+    @Column(name = "customer_name")
+    private String customerName;
 
     @Column(name = "garment_type", nullable = false, length = 50)
     private String garmentType;
 
-    // This magically saves your Java Map directly into PostgreSQL as JSONB!
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "measurements", columnDefinition = "jsonb", nullable = false)
-    private Map<String, Object> measurements;
-
-    @Column(name = "est_hours", nullable = false)
-    private Integer estHours;
-
-    @Column(name = "status", length = 30)
-    private String status = "BOOKED";
+    @Convert(converter = JsonMapConverter.class)
+    @Column(name = "measurements", nullable = false, columnDefinition = "TEXT")
+    private Map<String, String> measurements;
 
     @Column(name = "delivery_date", nullable = false)
     private LocalDate deliveryDate;
 
+    @Column(name = "est_hours", nullable = false)
+    private Integer estHours;
+
+    @Column(name = "order_date")
+    private LocalDate orderDate;
+
+    @Column(name = "phone", length = 15)
+    private String phone;
+
+    @Column(name = "style", columnDefinition = "TEXT")
+    private String style;
+
+    @Column(name = "notes", columnDefinition = "TEXT")
+    private String notes;
+
+    @Column(name = "fabric_photo", columnDefinition = "TEXT")
+    private String fabricPhoto;
+
+    @Column(name = "total_amount")
+    private Double totalAmount;
+
+    @Column(name = "advance_amount")
+    private Double advanceAmount;
+
+    @Column(name = "status", length = 30)
+    private String status = "BOOKED";
+
+    @Column(name = "token", length = 4, unique = true)
+    private String token;
+
     @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
 
-    public Long getOrderId() {
-        return orderId;
-    }
+    // Getters and setters
+    public Long getOrderId() { return orderId; }
+    public void setOrderId(Long orderId) { this.orderId = orderId; }
 
-    public void setOrderId(Long orderId) {
-        this.orderId = orderId;
-    }
+    public String getCustomerName() { return customerName; }
+    public void setCustomerName(String customerName) { this.customerName = customerName; }
 
-    public Customer getCustomer() {
-        return customer;
-    }
+    public String getGarmentType() { return garmentType; }
+    public void setGarmentType(String garmentType) { this.garmentType = garmentType; }
 
-    public void setCustomer(Customer customer) {
-        this.customer = customer;
-    }
+    public Map<String, String> getMeasurements() { return measurements; }
+    public void setMeasurements(Map<String, String> measurements) { this.measurements = measurements; }
 
-    public String getGarmentType() {
-        return garmentType;
-    }
+    public LocalDate getDeliveryDate() { return deliveryDate; }
+    public void setDeliveryDate(LocalDate deliveryDate) { this.deliveryDate = deliveryDate; }
 
-    public void setGarmentType(String garmentType) {
-        this.garmentType = garmentType;
-    }
+    public Integer getEstHours() { return estHours; }
+    public void setEstHours(Integer estHours) { this.estHours = estHours; }
 
-    public Map<String, Object> getMeasurements() {
-        return measurements;
-    }
+    public LocalDate getOrderDate() { return orderDate; }
+    public void setOrderDate(LocalDate orderDate) { this.orderDate = orderDate; }
 
-    public void setMeasurements(Map<String, Object> measurements) {
-        this.measurements = measurements;
-    }
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
 
-    public Integer getEstHours() {
-        return estHours;
-    }
+    public String getStyle() { return style; }
+    public void setStyle(String style) { this.style = style; }
 
-    public void setEstHours(Integer estHours) {
-        this.estHours = estHours;
-    }
+    public String getNotes() { return notes; }
+    public void setNotes(String notes) { this.notes = notes; }
 
-    public String getStatus() {
-        return status;
-    }
+    public String getFabricPhoto() { return fabricPhoto; }
+    public void setFabricPhoto(String fabricPhoto) { this.fabricPhoto = fabricPhoto; }
 
-    public void setStatus(String status) {
-        this.status = status;
-    }
+    public Double getTotalAmount() { return totalAmount; }
+    public void setTotalAmount(Double totalAmount) { this.totalAmount = totalAmount; }
 
-    public LocalDate getDeliveryDate() {
-        return deliveryDate;
-    }
+    public Double getAdvanceAmount() { return advanceAmount; }
+    public void setAdvanceAmount(Double advanceAmount) { this.advanceAmount = advanceAmount; }
 
-    public void setDeliveryDate(LocalDate deliveryDate) {
-        this.deliveryDate = deliveryDate;
-    }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
+    public String getToken() { return token; }
+    public void setToken(String token) { this.token = token; }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    // TODO: Right-click here and generate Getters and Setters!
+    public Instant getCreatedAt() { return createdAt; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
 }

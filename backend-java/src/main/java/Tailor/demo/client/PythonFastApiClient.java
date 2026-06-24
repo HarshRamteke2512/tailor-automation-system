@@ -1,5 +1,6 @@
 package Tailor.demo.client;
 
+import Tailor.demo.entity.Order;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
@@ -9,36 +10,30 @@ import java.util.Map;
 @Component
 public class PythonFastApiClient {
 
-    // Spring's built-in tool for making HTTP REST calls
     private final RestTemplate restTemplate = new RestTemplate();
-    
-    // TODO: Update this to match your teammate's FastAPI server address
+
     private final String PYTHON_SERVER_URL = "http://localhost:8000";
 
-    // ---------------------------------------------------------
-    // TRIGGER 1: WhatsApp Notification (Fire and Forget)
-    // ---------------------------------------------------------
     @Async
-    public void triggerWhatsAppNotification(String customerPhone, Long orderId) {
-        String targetUrl = PYTHON_SERVER_URL + "/api/notifications/whatsapp";
+    public void triggerStatusNotification(Order order) {
+        String targetUrl = PYTHON_SERVER_URL + "/api/notify/status-update";
 
-        // Build the JSON map to send to Python
         Map<String, Object> payload = new HashMap<>();
-        payload.put("phone", customerPhone);
-        payload.put("message", "Great news! Your tailor order #" + orderId + " is READY FOR PICKUP!");
+        payload.put("token_id", order.getToken());
+        payload.put("customer_name", order.getCustomerName());
+        payload.put("customer_phone", order.getPhone());
+        payload.put("garment_type", order.getGarmentType());
+        payload.put("current_status", order.getStatus());
+        payload.put("pending_balance", order.getTotalAmount() != null ? String.valueOf(order.getTotalAmount()) : "0");
 
         try {
-            // Make the POST request
             restTemplate.postForObject(targetUrl, payload, String.class);
-            System.out.println("✅ WhatsApp trigger sent to Python for Order #" + orderId);
+            System.out.println("✅ Status notification sent to Python for Order #" + order.getOrderId());
         } catch (Exception e) {
             System.err.println("❌ Failed to reach Python Notification Engine: " + e.getMessage());
         }
     }
 
-    // ---------------------------------------------------------
-    // TRIGGER 2: Image Cleanup Webhook (Asynchronous)
-    // ---------------------------------------------------------
     @Async
     public void triggerImageCleanup(Long orderId) {
         String targetUrl = PYTHON_SERVER_URL + "/api/media/cleanup";

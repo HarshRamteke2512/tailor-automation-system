@@ -6,86 +6,95 @@ import Tailor.demo.client.PythonFastApiClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.ThreadLocalRandom;
+import java.time.LocalDate;
 
 @Service
 public class OrderService {
 
+    private final OrderRepository orderRepository;
+    private final PythonFastApiClient pythonClient;
+
     @Autowired
-    private OrderRepository orderRepository;
+    public OrderService(OrderRepository orderRepository, PythonFastApiClient pythonClient) {
+        this.orderRepository = orderRepository;
+        this.pythonClient = pythonClient;
+    }
 
-    // 1. This wires up your new Python messenger!
-    @Autowired
-    private PythonFastApiClient pythonClient;
+    public List<Order> getAllOrders() {
+        return orderRepository.findAll();
+    }
 
-    private static final int MAX_DAILY_HOURS = 40;
-
-    // ---------------------------------------------------------
-    // RULE 1: Experience-Driven Capacity Pool
-    // ---------------------------------------------------------
     public Order createNewOrder(Order newOrder) {
-        List<Order> existingOrders = orderRepository.findByDeliveryDate(newOrder.getDeliveryDate());
-        int totalBookedHours = 0;
-        for (Order existing : existingOrders) {
-            totalBookedHours += existing.getEstHours();
-        }
-        if ((totalBookedHours + newOrder.getEstHours()) > MAX_DAILY_HOURS) {
-            throw new RuntimeException("Shop capacity exceeded for this date! Total hours would be " 
-                    + (totalBookedHours + newOrder.getEstHours()) + ". Please choose a different delivery date.");
+        String token = generateUniqueToken();
+        newOrder.setToken(token);
+        if (newOrder.getOrderDate() == null) {
+            newOrder.setOrderDate(LocalDate.now());
         }
         return orderRepository.save(newOrder);
     }
 
-    // ---------------------------------------------------------
-    // RULE 2: Strict Workflow Transitions
-    // ---------------------------------------------------------
-    public Order moveOrderToProduction(Long orderId) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Error: Order not found!"));
-
-        if (!"BOOKED".equals(order.getStatus())) {
-            throw new RuntimeException("Wait! You can only move an order to IN_PRODUCTION if its current status is BOOKED.");
-        }
-        order.setStatus("IN_PRODUCTION");
-        return orderRepository.save(order);
+    public Optional<Order> getOrderById(Long id) {
+        return orderRepository.findById(id);
     }
 
-    // ---------------------------------------------------------
-    // NEW RULE 3: Ready For Pickup (Triggers WhatsApp)
-    // ---------------------------------------------------------
-    public Order markReadyForPickup(Long orderId) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found!"));
-
-        // Ensure it is coming from the workshop floor
-        if (!"STITCHING_COMPLETED".equals(order.getStatus())) {
-            throw new RuntimeException("Status must be STITCHING_COMPLETED first.");
-        }
-
-        order.setStatus("READY_FOR_PICKUP");
-        Order savedOrder = orderRepository.save(order);
-
-        // 🔥 FIRE THE WEBHOOK TO PYTHON!
-        // We pass the phone number directly from the linked Customer table
-        pythonClient.triggerWhatsAppNotification(order.getCustomer().getPhone(), order.getOrderId());
-
-        return savedOrder;
+    public Order updateOrder(Long id, Order updatedOrder) {
+        return orderRepository.findById(id).map(existingOrder -> {
+            existingOrder.setCustomerName(updatedOrder.getCustomerName());
+            existingOrder.setPhone(updatedOrder.getPhone());
+            existingOrder.setOrderDate(updatedOrder.getOrderDate());
+            existingOrder.setDeliveryDate(updatedOrder.getDeliveryDate());
+            existingOrder.setStatus(updatedOrder.getStatus());
+            existingOrder.setTotalAmount(updatedOrder.getTotalAmount());
+            existingOrder.setAdvanceAmount(updatedOrder.getAdvanceAmount());
+            existingOrder.setStyle(updatedOrder.getStyle());
+            existingOrder.setNotes(updatedOrder.getNotes());
+            existingOrder.setFabricPhoto(updatedOrder.getFabricPhoto());
+            return orderRepository.save(existingOrder);
+        }).orElseThrow(() -> new RuntimeException("Order not found with id: " + id));
     }
 
-    // ---------------------------------------------------------
-    // NEW RULE 4: Delivered & Paid (Triggers Image Deletion)
-    // ---------------------------------------------------------
-    public Order markDeliveredAndPaid(Long orderId, String paymentMethod) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found!"));
+    public void deleteOrder(Long id) {
+        if (!orderRepository.existsById(id)) {
+            throw new RuntimeException("Order not found with id: " + id);
+        }
+        orderRepository.deleteById(id);
+    }
 
-        order.setStatus("DELIVERED");
-        Order savedOrder = orderRepository.save(order);
+    public Order moveOrderToProduction(Long id) {
+        return orderRepository.findById(id).map(order -> {
+            order.setStatus("IN_PRODUCTION");
+            return orderRepository.save(order);
+        }).orElseThrow(() -> new RuntimeException("Order not found with id: " + id));
+    }
 
-        // 🔥 FIRE THE WEBHOOK TO CLEAN UP THE DISK!
-        pythonClient.triggerImageCleanup(order.getOrderId());
+    public Order moveOrderToComplete(Long id) {
+        return orderRepository.findById(id).map(order -> {
+            order.setStatus("COMPLETED");
+            return orderRepository.save(order);
+        }).orElseThrow(() -> new RuntimeException("Order not found with id: " + id));
+    }
 
-        return savedOrder;
+    public Order moveOrderToDelivered(Long id) {
+        return orderRepository.findById(id).map(order -> {
+            order.setStatus("DELIVERED");
+            Order saved = orderRepository.save(order);
+            if (order.getPhone() != null && !order.getPhone().isBlank()) {
+                pythonClient.triggerStatusNotification(order);
+            }
+            pythonClient.triggerImageCleanup(order.getOrderId());
+            return saved;
+        }).orElseThrow(() -> new RuntimeException("Order not found with id: " + id));
+    }
+
+    private String generateUniqueToken() {
+        ThreadLocalRandom random = ThreadLocalRandom.current();
+        String token;
+        do {
+            token = String.valueOf(random.nextInt(1000, 10000));
+        } while (orderRepository.findByToken(token).isPresent());
+        return token;
     }
 }

@@ -1,0 +1,15 @@
+# IDE
+/.idea/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+backend-python/venv/
+backend-python/.env
+
+# Java
+backend-java/target/
+
+# Logs
+*.log
