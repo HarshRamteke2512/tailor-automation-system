@@ -12,7 +12,7 @@ public class PythonFastApiClient {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
-    private final String PYTHON_SERVER_URL = "http://localhost:8000";
+    private final String PYTHON_SERVER_URL = System.getenv().getOrDefault("PYTHON_SERVER_URL", "http://localhost:8000");
 
     @Async
     public void triggerStatusNotification(Order order) {

@@ -1,10 +1,12 @@
 services:
-  # 1. Java API Service (Docker environment)
+  # 1. Java API Service (Spring Boot)
   - type: web
     name: java-backend-api
-    runtime: docker
+    runtime: java
     plan: free
-    rootDir: backend-java # <-- Context targets your Java subfolder layout
+    rootDir: backend-java
+    buildCommand: "./mvnw clean package -DskipTests"
+    startCommand: "java -jar target/demo-0.0.1-SNAPSHOT.jar"
     envVars:
       - key: DB_USER
         fromDatabase:
@@ -29,7 +31,7 @@ services:
     name: python-backend-api
     runtime: python
     plan: starter
-    rootDir: backend-python # <-- Context targets your Python subfolder layout
+    rootDir: backend-python
     buildCommand: "pip install -r requirements.txt"
     startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
     envVars:
@@ -38,26 +40,22 @@ services:
           name: tailor-postgres-db
           property: connectionString
       - key: WHATSAPP_TOKEN
-        sync: false # Prompts for explicit entry securely inside the browser UI
+        sync: false
       - key: WHATSAPP_VERIFY_TOKEN
         sync: false
 
-  # 3. React Frontend Service (Static Site CDN)
+  # 3. Frontend (TanStack Start SSR — Node.js Web Service)
   - type: web
     name: react-frontend
-    runtime: static
+    runtime: node
     plan: free
-    rootDir: frontend # <-- Context targets your React subfolder layout
-    buildCommand: "npm install && npm run build"
-    publishDir: "dist"
-    routes:
-      - source: "/*"
-        destination: "/index.html"
-        type: rewrite
+    rootDir: frontend
+    buildCommand: "npm ci && npm run build"
+    startCommand: "node .output/server/index.mjs"
 
 databases:
-  # 4. Managed PostgreSQL Instance (Basic $6/mo Tier)
+  # 4. Managed PostgreSQL Instance
   - name: tailor-postgres-db
-    plan: basic
+    plan: free
     databaseName: tailor_automation_db
     user: tailor_admin
