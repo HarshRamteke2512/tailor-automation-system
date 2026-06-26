@@ -1,5 +1,5 @@
 services:
-  # 1. Java + Python API (Docker bundle — both run via supervisord)
+  # 1. Java + Python API (Docker bundle — start.sh runs Python bg + Java fg)
   - type: web
     name: tailor-api
     runtime: docker

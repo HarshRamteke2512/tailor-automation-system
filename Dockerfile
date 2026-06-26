@@ -6,14 +6,15 @@ COPY backend-java/src ./src
 RUN mvn clean package -DskipTests
 
 FROM python:3.12-slim
-RUN apt-get update && apt-get install -y openjdk-21-jre supervisor && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y openjdk-21-jre socat && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 COPY --from=java-build /build/target/demo-0.0.1-SNAPSHOT.jar /app/java/app.jar
 COPY backend-python/ /app/python/
 RUN pip install --no-cache-dir -r /app/python/requirements.txt
 
-COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY start.sh /app/start.sh
+RUN chmod +x /app/start.sh
 
-EXPOSE 8089 8000
-CMD ["supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+EXPOSE 8089
+CMD ["/app/start.sh"]
