@@ -1,11 +1,46 @@
 import handler from "./dist/server/server.js";
 import http from "node:http";
+import fs from "node:fs";
+import path from "node:path";
 
 const port = parseInt(process.env.PORT || "", 10) || 4173;
+const clientDir = path.resolve("dist/client");
+
+const mimeTypes = {
+  ".js": "application/javascript",
+  ".css": "text/css",
+  ".html": "text/html",
+  ".svg": "image/svg+xml",
+  ".webmanifest": "application/manifest+json",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".ico": "image/x-icon",
+};
 
 const server = http.createServer((req, res) => {
+  const urlPath = req.url || "/";
+
+  // Serve static files from dist/client/
+  if (urlPath.startsWith("/assets/") || urlPath.startsWith("/icon") || urlPath.startsWith("/manifest")) {
+    const filePath = path.join(clientDir, urlPath);
+    if (filePath.startsWith(clientDir)) {
+      try {
+        const stat = fs.statSync(filePath);
+        if (stat.isFile()) {
+          const ext = path.extname(filePath);
+          res.writeHead(200, { "Content-Type": mimeTypes[ext] || "application/octet-stream" });
+          fs.createReadStream(filePath).pipe(res);
+          return;
+        }
+      } catch (e) {
+        console.log("[STATIC] error:", e.message);
+      }
+    }
+  }
+
+  // Fall through to TanStack Start SSR handler
   const host = req.headers.host || `localhost:${port}`;
-  const url = new URL(req.url || "/", `http://${host}`);
+  const url = new URL(urlPath, `http://${host}`);
 
   const headers = new Headers();
   for (const [k, v] of Object.entries(req.headers)) {
@@ -21,7 +56,7 @@ const server = http.createServer((req, res) => {
   const request = new Request(url, {
     method: req.method,
     headers,
-    body: req.method !== "GET" && req.method !== "HEAD" ? req : undefined,
+    body: ["GET", "HEAD"].includes(req.method) ? undefined : req,
   });
 
   handler
