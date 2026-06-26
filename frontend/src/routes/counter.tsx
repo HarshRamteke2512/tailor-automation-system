@@ -85,10 +85,11 @@ function Counter() {
     recognition.interimResults = true;
     recognition.continuous = true;
     recognition.onresult = (event: any) => {
-      const transcript = Array.from(event.results)
+      const finalTranscript = Array.from(event.results)
+        .filter((r: any) => r.isFinal)
         .map((r: any) => r[0].transcript)
-        .join("");
-      setForm((f) => ({ ...f, notes: transcript }));
+        .join(" ");
+      setForm((f) => ({ ...f, notes: finalTranscript }));
     };
     recognition.onerror = () => setDictating(false);
     recognition.onend = () => setDictating(false);
