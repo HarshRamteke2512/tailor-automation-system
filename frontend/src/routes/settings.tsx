@@ -12,7 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { useApp } from "@/contexts/AppContext";
 
 export const Route = createFileRoute("/settings")({
-  head: () => ({ meta: [{ title: "Settings — TAILOR SHOP" }] }),
+  head: () => ({ meta: [{ title: "Settings — VANYA" }] }),
   component: SettingsPage,
 });
 
