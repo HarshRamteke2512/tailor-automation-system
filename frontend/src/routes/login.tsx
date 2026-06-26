@@ -39,9 +39,9 @@ function Login() {
           <div className="h-14 w-14 rounded-xl bg-gold flex items-center justify-center mb-4 shadow-[0_8px_30px_-10px_oklch(0.78_0.13_85_/_0.6)]">
             <Scissors className="h-6 w-6 text-gold-foreground" />
           </div>
-          <h1 className="text-2xl font-semibold tracking-wide">ATELIER</h1>
+          <h1 className="text-2xl font-semibold tracking-wide">VANYA</h1>
           <p className="text-xs text-muted-foreground uppercase tracking-[0.3em] mt-1">
-            Bespoke Tailoring
+            Where Every Stitch Finds Harmony
           </p>
         </div>
 
