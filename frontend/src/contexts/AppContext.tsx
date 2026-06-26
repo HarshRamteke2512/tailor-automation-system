@@ -29,6 +29,7 @@ interface AppState {
   addOrder: (o: Omit<Order, "id" | "token" | "status" | "createdAt">) => Promise<Order | null>;
   updateStatus: (id: number, status: OrderStatus) => Promise<void>;
   setFabricPhoto: (id: number, dataUrl: string) => void;
+  refreshOrders: () => Promise<void>;
   apiConfig: { javaUrl: string; pythonUrl: string };
   setApiConfig: (c: { javaUrl: string; pythonUrl: string }) => void;
   prefs: { notifications: boolean; haptics: boolean };
@@ -65,8 +66,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const a = localStorage.getItem("tailor_api");
       const p = localStorage.getItem("tailor_prefs");
       if (u) setUser(JSON.parse(u));
-      if (a) setApiConfigState(JSON.parse(a));
       if (p) setPrefsState(JSON.parse(p));
+
+      if (a) {
+        setApiConfigState(JSON.parse(a));
+      } else if (
+        typeof window !== "undefined" &&
+        !window.location.hostname.includes("localhost") &&
+        !window.location.hostname.includes("127.0.0.1")
+      ) {
+        setApiConfigState({ javaUrl: "", pythonUrl: "" });
+      }
     } catch (error) {
       console.error("Failed to restore local layout profiles", error);
     }
@@ -197,6 +207,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const setFabricPhoto = (id: number, dataUrl: string) =>
     setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, fabricPhoto: dataUrl } : o)));
 
+  const refreshOrders = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(`${apiConfig.javaUrl}/api/orders`);
+      if (!res.ok) throw new Error("Failed to fetch orders");
+      const data = await res.json();
+      const formattedData = data.map((o: any) => ({
+        ...o,
+        id: o.id || o.orderId,
+        token: o.token,
+        customerName: o.customerName || o.name,
+        status: NORMALIZE_STATUS[o.status as keyof typeof NORMALIZE_STATUS] || o.status || "Pending",
+      }));
+      setOrders(formattedData);
+    } catch (err) {
+      console.error("Refresh failed:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const setApiConfig = (c: typeof DEFAULTS) => {
     setApiConfigState(c);
     localStorage.setItem("tailor_api", JSON.stringify(c));
@@ -217,6 +248,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         addOrder,
         updateStatus,
         setFabricPhoto,
+        refreshOrders,
         apiConfig,
         setApiConfig,
         prefs,

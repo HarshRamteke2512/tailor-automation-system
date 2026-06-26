@@ -1,10 +1,12 @@
 import handler from "./dist/server/server.js";
 import http from "node:http";
+import https from "node:https";
 import fs from "node:fs";
 import path from "node:path";
 
 const port = parseInt(process.env.PORT || "", 10) || 4173;
 const clientDir = path.resolve("dist/client");
+const apiJavaUrl = process.env.API_JAVA_URL || "http://localhost:8089";
 
 const mimeTypes = {
   ".js": "application/javascript",
@@ -19,6 +21,31 @@ const mimeTypes = {
 
 const server = http.createServer((req, res) => {
   const urlPath = req.url || "/";
+
+  // Proxy /api/* requests to the Java backend
+  if (urlPath.startsWith("/api/")) {
+    const target = new URL(urlPath, apiJavaUrl);
+    const proxy = target.protocol === "https:" ? https : http;
+    const chunks = [];
+    req.on("data", (c) => chunks.push(c));
+    req.on("end", () => {
+      const body = Buffer.concat(chunks);
+      const headers = { ...req.headers };
+      delete headers.host;
+      delete headers.connection;
+      const proxyReq = proxy.request(target, { method: req.method, headers }, (proxyRes) => {
+        res.writeHead(proxyRes.statusCode, proxyRes.headers);
+        proxyRes.pipe(res);
+      });
+      proxyReq.on("error", () => {
+        res.writeHead(502, { "Content-Type": "text/plain" });
+        res.end("Bad Gateway");
+      });
+      if (body.length > 0) proxyReq.write(body);
+      proxyReq.end();
+    });
+    return;
+  }
 
   // Serve static files from dist/client/
   if (urlPath.startsWith("/assets/") || urlPath.startsWith("/icon") || urlPath.startsWith("/manifest")) {

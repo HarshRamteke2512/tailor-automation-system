@@ -2,7 +2,7 @@ import { createFileRoute, Navigate, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { AppShell } from "@/components/AppShell";
-import { ChevronRight, Search } from "lucide-react";
+import { ChevronRight, RefreshCw, Search } from "lucide-react";
 import { useApp, type OrderStatus } from "@/contexts/AppContext";
 import {
   Dialog,
@@ -115,7 +115,7 @@ function NumpadDialog({
 }
 
 function Karigar() {
-  const { user, orders } = useApp();
+  const { user, orders, refreshOrders } = useApp();
   const navigate = useNavigate();
   const [filter, setFilter] = useState<"All" | OrderStatus>("All");
   const [searchOpen, setSearchOpen] = useState(false);
@@ -140,12 +140,21 @@ function Karigar() {
             <div className="text-xs uppercase tracking-[0.3em] text-gold mb-2">Workshop</div>
             <h1 className="text-2xl sm:text-3xl font-semibold">Active Tokens</h1>
           </div>
-          <button
-            onClick={() => setSearchOpen(true)}
-            className="h-10 w-10 rounded-xl bg-card border border-border flex items-center justify-center hover:border-gold/50 transition-colors cursor-pointer shrink-0"
-          >
-            <Search className="h-4 w-4 text-muted-foreground" />
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={refreshOrders}
+              className="h-10 w-10 rounded-xl bg-card border border-border flex items-center justify-center hover:border-gold/50 transition-colors cursor-pointer shrink-0"
+              title="Refresh orders"
+            >
+              <RefreshCw className="h-4 w-4 text-muted-foreground" />
+            </button>
+            <button
+              onClick={() => setSearchOpen(true)}
+              className="h-10 w-10 rounded-xl bg-card border border-border flex items-center justify-center hover:border-gold/50 transition-colors cursor-pointer shrink-0"
+            >
+              <Search className="h-4 w-4 text-muted-foreground" />
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6 sm:mb-8">

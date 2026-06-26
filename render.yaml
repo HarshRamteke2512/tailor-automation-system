@@ -38,6 +38,9 @@ services:
     rootDir: frontend
     buildCommand: "npm ci && npm run build"
     startCommand: "node prod.mjs"
+    envVars:
+      - key: API_JAVA_URL
+        value: "https://tailor-api-98x4.onrender.com"
 
 databases:
   # 3. Managed PostgreSQL Instance

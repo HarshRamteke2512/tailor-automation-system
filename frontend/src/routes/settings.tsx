@@ -65,13 +65,21 @@ function SettingsPage() {
         </Group>
 
         <Group title="Server Configuration">
-          <Row label="Java API" value={apiConfig.javaUrl} onClick={() => openEdit("java")} />
-          <Row label="Python API" value={apiConfig.pythonUrl} onClick={() => openEdit("python")} />
+          <Row label="Java API" value={apiConfig.javaUrl || "(auto via proxy)"} onClick={() => openEdit("java")} />
+          <Row label="Python API" value={apiConfig.pythonUrl || "(auto via proxy)"} onClick={() => openEdit("python")} />
           <Row
             label="Reset to Defaults"
-            onClick={() =>
-              setApiConfig({ javaUrl: "http://127.0.0.1:8089", pythonUrl: "http://127.0.0.1:8000" })
-            }
+            onClick={() => {
+              const isProd =
+                typeof window !== "undefined" &&
+                !window.location.hostname.includes("localhost") &&
+                !window.location.hostname.includes("127.0.0.1");
+              setApiConfig(
+                isProd
+                  ? { javaUrl: "", pythonUrl: "" }
+                  : { javaUrl: "http://127.0.0.1:8089", pythonUrl: "http://127.0.0.1:8000" },
+              );
+            }}
           />
         </Group>
 
