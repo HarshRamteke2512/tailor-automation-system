@@ -1,0 +1,63 @@
+services:
+  # 1. Java API Service (Docker environment)
+  - type: web
+    name: java-backend-api
+    runtime: docker
+    plan: free
+    rootDir: backend-java # <-- Context targets your Java subfolder layout
+    envVars:
+      - key: DB_USER
+        fromDatabase:
+          name: tailor-postgres-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: tailor-postgres-db
+          property: password
+      - key: JDBC_DATABASE_URL
+        fromDatabase:
+          name: tailor-postgres-db
+          property: jdbcUrl
+      - key: PYTHON_SERVER_URL
+        fromService:
+          type: web
+          name: python-backend-api
+          property: host
+
+  # 2. Python API Service (Starter $7/mo Tier)
+  - type: web
+    name: python-backend-api
+    runtime: python
+    plan: starter
+    rootDir: backend-python # <-- Context targets your Python subfolder layout
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: tailor-postgres-db
+          property: connectionString
+      - key: WHATSAPP_TOKEN
+        sync: false # Prompts for explicit entry securely inside the browser UI
+      - key: WHATSAPP_VERIFY_TOKEN
+        sync: false
+
+  # 3. React Frontend Service (Static Site CDN)
+  - type: web
+    name: react-frontend
+    runtime: static
+    plan: free
+    rootDir: frontend # <-- Context targets your React subfolder layout
+    buildCommand: "npm install && npm run build"
+    publishDir: "dist"
+    routes:
+      - source: "/*"
+        destination: "/index.html"
+        type: rewrite
+
+databases:
+  # 4. Managed PostgreSQL Instance (Basic $6/mo Tier)
+  - name: tailor-postgres-db
+    plan: basic
+    databaseName: tailor_automation_db
+    user: tailor_admin
