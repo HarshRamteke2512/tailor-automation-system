@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { useApp, type Role } from "@/contexts/AppContext";
 
 export const Route = createFileRoute("/login")({
-  head: () => ({ meta: [{ title: "Sign in — TAILOR SHOP" }] }),
+  head: () => ({ meta: [{ title: "Sign in — VANYA" }] }),
   component: Login,
 });
 
