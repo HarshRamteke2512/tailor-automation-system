@@ -30,7 +30,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Scissors className="h-4 w-4 text-gold-foreground" />
             </div>
             <div>
-              <div className="text-sm sm:text-base font-semibold tracking-wide">TAILOR SHOP</div>
+              <div className="text-sm sm:text-base font-semibold tracking-wide">VANYA</div>
               <div className="text-[10px] text-muted-foreground uppercase tracking-[0.2em] hidden sm:block">
                 {user.role === "counter" ? "Counter Desk" : "Karigar Workshop"}
               </div>
