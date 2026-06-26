@@ -57,7 +57,7 @@ export function PwaInstallPrompt() {
           <Download className="h-5 w-5 text-gold" />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-medium">Install TAILOR SHOP</div>
+          <div className="text-sm font-medium">Install VANYA</div>
           <p className="text-xs text-muted-foreground mt-1">
             Add this app to your home screen for a full-screen mobile experience.
           </p>
