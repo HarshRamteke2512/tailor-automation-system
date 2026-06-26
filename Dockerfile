@@ -6,7 +6,7 @@ COPY backend-java/src ./src
 RUN mvn clean package -DskipTests
 
 FROM python:3.12-slim
-RUN apt-get update && apt-get install -y openjdk-17-jre-headless supervisor && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y openjdk-21-jre supervisor && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 COPY --from=java-build /build/target/demo-0.0.1-SNAPSHOT.jar /app/java/app.jar

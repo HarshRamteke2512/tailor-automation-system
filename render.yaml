@@ -26,10 +26,7 @@ services:
         fromDatabase:
           name: tailor-postgres-db
           property: password
-      - key: WHATSAPP_PHONE_NUMBER_ID
-        sync: false
-      - key: WHATSAPP_ACCESS_TOKEN
-        sync: false
+
 
   # 2. Frontend (TanStack Start SSR — Node.js Web Service)
   - type: web
@@ -38,7 +35,7 @@ services:
     plan: free
     rootDir: frontend
     buildCommand: "npm ci && npm run build"
-    startCommand: "node .output/server/index.mjs"
+    startCommand: "node dist/server/server.js"
 
 databases:
   # 3. Managed PostgreSQL Instance
