@@ -1,10 +1,10 @@
 services:
-  # 1. Java API Service (Spring Boot via Docker)
+  # 1. Java + Python API (Docker bundle — both run via supervisord)
   - type: web
-    name: java-backend-api
+    name: tailor-api
     runtime: docker
     plan: free
-    rootDir: backend-java
+    rootDir: .
     envVars:
       - key: DB_HOST
         fromDatabase:
@@ -26,31 +26,12 @@ services:
         fromDatabase:
           name: tailor-postgres-db
           property: password
-      - key: PYTHON_SERVER_URL
-        fromService:
-          type: web
-          name: python-backend-api
-          property: host
-
-  # 2. Python API Service (Starter $7/mo Tier)
-  - type: web
-    name: python-backend-api
-    runtime: python
-    plan: starter
-    rootDir: backend-python
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
-    envVars:
-      - key: DATABASE_URL
-        fromDatabase:
-          name: tailor-postgres-db
-          property: connectionString
-      - key: WHATSAPP_TOKEN
+      - key: WHATSAPP_PHONE_NUMBER_ID
         sync: false
-      - key: WHATSAPP_VERIFY_TOKEN
+      - key: WHATSAPP_ACCESS_TOKEN
         sync: false
 
-  # 3. Frontend (TanStack Start SSR — Node.js Web Service)
+  # 2. Frontend (TanStack Start SSR — Node.js Web Service)
   - type: web
     name: react-frontend
     runtime: node
@@ -60,7 +41,7 @@ services:
     startCommand: "node .output/server/index.mjs"
 
 databases:
-  # 4. Managed PostgreSQL Instance
+  # 3. Managed PostgreSQL Instance
   - name: tailor-postgres-db
     plan: free
     databaseName: tailor_automation_db
