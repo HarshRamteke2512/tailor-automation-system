@@ -1,13 +1,23 @@
 services:
-  # 1. Java API Service (Spring Boot)
+  # 1. Java API Service (Spring Boot via Docker)
   - type: web
     name: java-backend-api
-    runtime: java
+    runtime: docker
     plan: free
     rootDir: backend-java
-    buildCommand: "./mvnw clean package -DskipTests"
-    startCommand: "java -jar target/demo-0.0.1-SNAPSHOT.jar"
     envVars:
+      - key: DB_HOST
+        fromDatabase:
+          name: tailor-postgres-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: tailor-postgres-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: tailor-postgres-db
+          property: database
       - key: DB_USER
         fromDatabase:
           name: tailor-postgres-db
@@ -16,10 +26,6 @@ services:
         fromDatabase:
           name: tailor-postgres-db
           property: password
-      - key: JDBC_DATABASE_URL
-        fromDatabase:
-          name: tailor-postgres-db
-          property: jdbcUrl
       - key: PYTHON_SERVER_URL
         fromService:
           type: web
