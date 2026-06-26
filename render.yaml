@@ -6,6 +6,8 @@ services:
     plan: free
     rootDir: .
     envVars:
+      - key: PORT
+        value: "8089"
       - key: DB_HOST
         fromDatabase:
           name: tailor-postgres-db
