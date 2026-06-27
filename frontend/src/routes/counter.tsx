@@ -1,7 +1,7 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 
-import { Camera, Check, ImageIcon, Mic, MicOff } from "lucide-react";
+import { Camera, Check, ImageIcon, Mic, MicOff, RefreshCw } from "lucide-react";
 
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
@@ -47,7 +47,7 @@ const emptyForm = {
 };
 
 function Counter() {
-  const { user, addOrder } = useApp();
+  const { user, addOrder, refreshOrders } = useApp();
   const [form, setForm] = useState(emptyForm);
   const [issuedToken, setIssuedToken] = useState<string | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -118,12 +118,21 @@ function Counter() {
   return (
     <AppShell>
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
-        <div className="mb-6 sm:mb-8">
-          <div className="text-xs uppercase tracking-[0.3em] text-gold mb-2">Counter</div>
-          <h1 className="text-2xl sm:text-3xl font-semibold">New Order</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Capture measurements and issue a 4-digit token for the fabric bundle.
-          </p>
+        <div className="mb-6 sm:mb-8 flex items-start justify-between gap-4">
+          <div>
+            <div className="text-xs uppercase tracking-[0.3em] text-gold mb-2">Counter</div>
+            <h1 className="text-2xl sm:text-3xl font-semibold">New Order</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Capture measurements and issue a 4-digit token for the fabric bundle.
+            </p>
+          </div>
+          <button
+            onClick={refreshOrders}
+            className="h-10 w-10 rounded-xl bg-card border border-border flex items-center justify-center hover:border-gold/50 transition-colors cursor-pointer shrink-0"
+            title="Refresh orders"
+          >
+            <RefreshCw className="h-4 w-4 text-muted-foreground" />
+          </button>
         </div>
 
         <form onSubmit={submit} className="space-y-6 sm:space-y-8">

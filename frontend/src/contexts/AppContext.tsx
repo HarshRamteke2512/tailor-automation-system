@@ -87,24 +87,39 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!ready) return;
 
-    setLoading(true);
-    fetch(`${apiConfig.javaUrl}/api/orders`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to read server records");
-        return res.json();
-      })
-      .then((data) => {
-        const formattedData = data.map((o: any) => ({
-          ...o,
-          id: o.id || o.orderId,
-          token: o.token,
-          customerName: o.customerName || o.name,
-          status: NORMALIZE_STATUS[o.status as keyof typeof NORMALIZE_STATUS] || o.status || "Pending"
-        }));
-        setOrders(formattedData);
-      })
-      .catch((err) => console.error("Database connection dropped or unreachable:", err))
-      .finally(() => setLoading(false));
+    let cancelled = false;
+
+    const fetchOrders = async () => {
+      for (let i = 0; i < 5; i++) {
+        try {
+          setLoading(i === 0);
+          const res = await fetch(`${apiConfig.javaUrl}/api/orders`);
+          if (!res.ok) throw new Error("Failed to read server records");
+          const data = await res.json();
+          if (cancelled) return;
+          const formattedData = data.map((o: any) => ({
+            ...o,
+            id: o.id || o.orderId,
+            token: o.token,
+            customerName: o.customerName || o.name,
+            status: NORMALIZE_STATUS[o.status as keyof typeof NORMALIZE_STATUS] || o.status || "Pending"
+          }));
+          setOrders(formattedData);
+          setLoading(false);
+          return;
+        } catch (err) {
+          console.error(`Fetch attempt ${i + 1}/5 failed:`, err);
+          if (i < 4) {
+            if (i === 0) setLoading(false);
+            await new Promise(r => setTimeout(r, 2000));
+          }
+        }
+      }
+      setLoading(false);
+    };
+
+    fetchOrders();
+    return () => { cancelled = true; };
   }, [ready, apiConfig.javaUrl]);
 
   const login = (role: Role, username: string, _password: string) => {
